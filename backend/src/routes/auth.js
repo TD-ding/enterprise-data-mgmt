@@ -34,6 +34,32 @@ router.get('/profile', auth(), (req, res) => {
   success(res, user);
 });
 
+router.put('/profile', auth(), (req, res) => {
+  const { name, email, oldPassword, newPassword } = req.body;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return error(res, '用户不存在', 404);
+
+  const updates = [];
+  const values = [];
+
+  if (name !== undefined) { updates.push('name = ?'); values.push(name); }
+  if (email !== undefined) { updates.push('email = ?'); values.push(email); }
+
+  if (newPassword) {
+    if (!oldPassword) return error(res, '修改密码需提供旧密码', 400);
+    if (!bcrypt.compareSync(oldPassword, user.password)) return error(res, '旧密码不正确', 401);
+    updates.push('password = ?');
+    values.push(bcrypt.hashSync(newPassword, 10));
+  }
+
+  if (!updates.length) return success(res, user);
+
+  updates.push('updated_at = datetime("now")');
+  values.push(req.user.id);
+  db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+  success(res, db.prepare('SELECT id, username, role, name, email, status, updated_at FROM users WHERE id = ?').get(req.user.id));
+});
+
 router.get('/users', auth('admin'), (req, res) => {
   const { search = '', page = 1, pageSize = 10 } = req.query;
   const offset = (Number(page) - 1) * Number(pageSize);
