@@ -1,6 +1,6 @@
 <template>
-  <el-container class="layout">
-    <el-aside :width="isCollapse ? '64px' : '220px'" class="aside">
+  <el-container class="layout-container">
+    <el-aside :width="isCollapse ? '64px' : '220px'" class="sidebar">
       <div class="logo" @click="isCollapse = !isCollapse">
         <span v-if="!isCollapse">企业管理系统</span>
         <span v-else>EMS</span>
@@ -9,9 +9,9 @@
         :default-active="$route.path"
         router
         :collapse="isCollapse"
-        background-color="#304156"
-        text-color="#bfcbd9"
-        active-text-color="#409EFF"
+        :background-color="'var(--color-sidebar)'"
+        :text-color="'var(--color-sidebar-text)'"
+        :active-text-color="'var(--color-primary)'"
       >
         <el-menu-item index="/dashboard">
           <el-icon><DataAnalysis /></el-icon>
@@ -63,16 +63,16 @@ function handleLogout() {
 </script>
 
 <style scoped>
-.layout { height: 100vh; }
-.aside { background: #304156; transition: width 0.3s; overflow: hidden; }
+.layout-container { height: 100vh; }
+.sidebar { background: var(--color-sidebar); transition: width 0.3s; overflow: hidden; }
 .logo {
   height: 50px; display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 16px; font-weight: bold; cursor: pointer;
-  background: #263445;
+  background: var(--color-sidebar-dark);
 }
 .header {
   display: flex; align-items: center; gap: 10px;
-  border-bottom: 1px solid #e6e6e6; background: #fff;
+  border-bottom: 1px solid var(--color-border); background: #fff;
 }
 .welcome { font-weight: 500; }
 </style>
