@@ -11,7 +11,7 @@ router.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return error(res, '用户名和密码不能为空', 400);
 
-  const user = db.prepare('SELECT * FROM users WHERE username = ? AND status = "active"').get(username);
+  const user = db.prepare("SELECT * FROM users WHERE username = ? AND status = 'active'").get(username);
   if (!user || !bcrypt.compareSync(password, user.password)) {
     return error(res, '用户名或密码错误', 401);
   }
@@ -54,7 +54,7 @@ router.put('/profile', auth(), (req, res) => {
 
   if (!updates.length) return success(res, user);
 
-  updates.push('updated_at = datetime("now")');
+  updates.push("updated_at = datetime('now')");
   values.push(req.user.id);
   db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
   success(res, db.prepare('SELECT id, username, role, name, email, status, updated_at FROM users WHERE id = ?').get(req.user.id));
@@ -105,7 +105,7 @@ router.put('/users/:id', auth('admin'), (req, res) => {
 
   if (!updates.length) return success(res, user);
 
-  updates.push('updated_at = datetime("now")');
+  updates.push("updated_at = datetime('now')");
   values.push(req.params.id);
   db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
   success(res, db.prepare('SELECT id, username, role, name, email, status, updated_at FROM users WHERE id = ?').get(req.params.id));

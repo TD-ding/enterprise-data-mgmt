@@ -74,7 +74,7 @@ router.get('/', auth(), (req, res) => {
 });
 
 router.get('/categories', auth(), (req, res) => {
-  const rows = db.prepare('SELECT DISTINCT category FROM business_data WHERE category != "" ORDER BY category').all();
+  const rows = db.prepare("SELECT DISTINCT category FROM business_data WHERE category != '' ORDER BY category").all();
   success(res, rows.map(r => r.category));
 });
 
@@ -105,7 +105,7 @@ router.put('/:id', auth(), (req, res) => {
 
   if (!updates.length) return success(res, row);
 
-  updates.push('updated_at = datetime("now")');
+  updates.push("updated_at = datetime('now')");
   values.push(req.params.id);
   db.prepare(`UPDATE business_data SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
