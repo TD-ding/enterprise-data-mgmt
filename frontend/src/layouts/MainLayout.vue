@@ -33,6 +33,10 @@
           <el-icon><User /></el-icon>
           <template #title>用户管理</template>
         </el-menu-item>
+        <el-menu-item v-if="userStore.isAdmin()" index="/logs">
+          <el-icon><List /></el-icon>
+          <template #title>操作日志</template>
+        </el-menu-item>
         <el-menu-item index="/profile">
           <el-icon><Setting /></el-icon>
           <template #title>个人设置</template>
@@ -61,7 +65,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../stores/user';
-import { DataAnalysis, Document, User, Setting, Menu } from '@element-plus/icons-vue';
+import { DataAnalysis, Document, User, Setting, Menu, List } from '@element-plus/icons-vue';
 
 const userStore = useUserStore();
 const router = useRouter();

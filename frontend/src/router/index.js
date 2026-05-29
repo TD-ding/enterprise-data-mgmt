@@ -15,6 +15,7 @@ const routes = [
       { path: 'dashboard', name: 'Dashboard', component: () => import('../views/Dashboard.vue') },
       { path: 'users', name: 'UserManagement', component: () => import('../views/UserManage.vue'), meta: { role: 'admin' } },
       { path: 'data', name: 'DataList', component: () => import('../views/DataManage.vue') },
+      { path: 'logs', name: 'OperationLogs', component: () => import('../views/OperationLogs.vue'), meta: { role: 'admin' } },
       { path: 'profile', name: 'Profile', component: () => import('../views/Profile.vue') },
     ]
   },

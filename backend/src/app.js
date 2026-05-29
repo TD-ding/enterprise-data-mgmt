@@ -6,6 +6,7 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const dataRoutes = require('./routes/data');
 const adminRoutes = require('./routes/admin');
+const logsRoutes = require('./routes/logs');
 
 // Initialize database
 require('./init-db');
@@ -35,6 +36,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/logs', logsRoutes);
 
 // Serve frontend in production
 app.use(express.static(path.join(__dirname, '..', '..', 'frontend', 'dist')));
