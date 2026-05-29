@@ -14,7 +14,15 @@ api.interceptors.request.use(config => {
 });
 
 api.interceptors.response.use(
-  res => res.data,
+  res => {
+    const body = res.data;
+    if (body.success === false) {
+      const msg = body.error || '操作失败';
+      ElMessage({ message: msg, type: 'error', duration: 5000, showClose: true });
+      return Promise.reject(new Error(msg));
+    }
+    return body.success === true ? body : body;
+  },
   err => {
     const msg = err.response?.data?.error || err.message || '请求失败';
     if (err.response?.status === 401) {

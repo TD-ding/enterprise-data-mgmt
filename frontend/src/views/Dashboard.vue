@@ -60,29 +60,26 @@ const isAdmin = computed(() => userStore.isAdmin());
 
 const cards = computed(() => {
   if (!stats.value) return [];
+  const s = stats.value;
   if (isAdmin.value) {
     return [
-      { label: '用户总数', value: stats.value.userCount || 0 },
-      { label: '数据总量', value: stats.value.dataCount || 0 },
-      { label: '待审核', value: stats.value.pendingCount || 0 },
-      { label: '金额总计', value: '¥' + (stats.value.totalAmount || 0).toLocaleString() },
+      { label: '用户总数', value: s.userCount || 0 },
+      { label: '数据总量', value: s.dataCount || 0 },
+      { label: '待审核', value: s.pendingCount || 0 },
+      { label: '金额总计', value: '¥' + (s.totalAmount || 0).toLocaleString() },
     ];
   }
   return [
-    { label: '我的数据', value: stats.value.totalCount || 0 },
-    { label: '待处理', value: stats.value.pendingCount || 0 },
-    { label: '已审批', value: stats.value.approvedCount || 0 },
-    { label: '金额总计', value: '¥' + (stats.value.totalAmount || 0).toLocaleString() },
+    { label: '我的数据', value: s.totalCount || 0 },
+    { label: '待处理', value: s.pendingCount || 0 },
+    { label: '已审批', value: s.approvedCount || 0 },
+    { label: '金额总计', value: '¥' + (s.totalAmount || 0).toLocaleString() },
   ];
 });
 
 onMounted(async () => {
   try {
-    if (isAdmin.value) {
-      stats.value = await api.get('/admin/stats');
-    } else {
-      stats.value = await api.get('/data/my-stats');
-    }
+    stats.value = isAdmin.value ? await api.get('/admin/stats') : await api.get('/data/my-stats');
   } finally {
     loading.value = false;
   }
@@ -91,6 +88,6 @@ onMounted(async () => {
 
 <style scoped>
 .stat-card { text-align: center; padding: 10px 0; }
-.stat-value { font-size: 28px; font-weight: bold; color: #409EFF; }
-.stat-label { font-size: 14px; color: #909399; margin-top: 8px; }
+.stat-value { font-size: var(--font-size-title); font-weight: bold; color: var(--color-primary); }
+.stat-label { font-size: var(--font-size-label); color: var(--color-text-secondary); margin-top: 8px; }
 </style>

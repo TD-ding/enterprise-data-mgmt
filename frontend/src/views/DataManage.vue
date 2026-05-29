@@ -5,10 +5,7 @@
         <el-input v-model="search" placeholder="搜索标题/描述" style="width:200px" clearable @keyup.enter="loadData" />
         <el-select v-model="filterStatus" style="width:120px" @change="loadData" placeholder="状态筛选">
           <el-option label="全部" value="" />
-          <el-option label="待处理" value="pending" />
-          <el-option label="已审批" value="approved" />
-          <el-option label="已完成" value="completed" />
-          <el-option label="已拒绝" value="rejected" />
+          <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
         <el-button @click="loadData">搜索</el-button>
       </div>
@@ -22,7 +19,7 @@
       <el-table-column prop="amount" label="金额" width="100" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+          <el-tag :type="STATUS_MAP[row.status]?.tagType || 'info'" size="small">{{ STATUS_MAP[row.status]?.label || row.status }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="创建时间" width="170" />
@@ -48,18 +45,15 @@
         <el-form-item label="标题" prop="title">
           <el-input v-model="form.title" />
         </el-form-item>
-        <el-form-item label="类别" prop="category">
+        <el-form-item label="类别">
           <el-input v-model="form.category" />
         </el-form-item>
-        <el-form-item label="金额" prop="amount">
+        <el-form-item label="金额">
           <el-input-number v-model="form.amount" :min="0" :precision="2" style="width:100%" />
         </el-form-item>
-        <el-form-item label="状态" prop="status">
+        <el-form-item label="状态">
           <el-select v-model="form.status" style="width:100%">
-            <el-option label="待处理" value="pending" />
-            <el-option label="已审批" value="approved" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="已拒绝" value="rejected" />
+            <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="描述">
@@ -77,6 +71,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../api'
+import { STATUS_MAP, STATUS_OPTIONS } from '../constants'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const dataList = ref([])
@@ -91,17 +86,14 @@ const formRef = ref()
 const loading = ref(false)
 const saving = ref(false)
 
-const form = ref({ title: '', category: '', amount: 0, description: '', status: 'pending' })
-const rules = {
-  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-}
+const defaultForm = () => ({ title: '', category: '', amount: 0, description: '', status: 'pending' })
+const form = ref(defaultForm())
+const rules = { title: [{ required: true, message: '请输入标题', trigger: 'blur' }] }
 
 async function loadData() {
   loading.value = true
   try {
-    const res = await api.get('/data', {
-      params: { page: page.value, pageSize: pageSize.value, search: search.value, status: filterStatus.value }
-    })
+    const res = await api.get('/data', { params: { page: page.value, pageSize: pageSize.value, search: search.value, status: filterStatus.value } })
     dataList.value = res.data
     total.value = res.total
   } finally {
@@ -110,13 +102,8 @@ async function loadData() {
 }
 
 function openDialog(row = null) {
-  if (row) {
-    editId.value = row.id
-    form.value = { title: row.title, category: row.category, amount: row.amount, description: row.description, status: row.status }
-  } else {
-    editId.value = null
-    form.value = { title: '', category: '', amount: 0, description: '', status: 'pending' }
-  }
+  editId.value = row?.id ?? null
+  form.value = row ? { title: row.title, category: row.category, amount: row.amount, description: row.description, status: row.status } : defaultForm()
   dialogVisible.value = true
 }
 
@@ -143,14 +130,6 @@ async function handleDelete(id) {
   await api.delete(`/data/${id}`)
   ElMessage.success('删除成功')
   loadData()
-}
-
-function statusText(s) {
-  return { pending: '待处理', approved: '已审批', completed: '已完成', rejected: '已拒绝' }[s] || s
-}
-
-function statusType(s) {
-  return { pending: 'warning', approved: 'success', completed: '', rejected: 'danger' }[s] || 'info'
 }
 
 onMounted(loadData)

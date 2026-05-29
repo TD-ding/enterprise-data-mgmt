@@ -55,6 +55,6 @@ async function handleLogin() {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 .login-card { width: 400px; }
-.title { text-align: center; margin-bottom: 24px; color: #303133; }
-.hint { text-align: center; color: #909399; font-size: 12px; margin-top: 8px; }
+.title { text-align: center; margin-bottom: 24px; color: var(--color-text); }
+.hint { text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-hint); margin-top: 8px; }
 </style>
