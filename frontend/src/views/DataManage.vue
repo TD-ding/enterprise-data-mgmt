@@ -1,82 +1,80 @@
 <template>
   <div>
     <div class="toolbar">
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <el-input v-model="search" placeholder="搜索标题/描述" style="width:200px" clearable @keyup.enter="searchData" />
-        <el-select v-model="filterStatus" style="width:120px" @change="onFilterChange" placeholder="状态筛选">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <el-input v-model="search" placeholder="搜索标题/描述" style="width:180px" clearable @keyup.enter="doSearch" />
+        <el-select v-model="filterStatus" placeholder="状态" style="width:110px" @change="doSearch">
           <el-option label="全部" value="" />
-          <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          <el-option v-for="s in statusOpts" :key="s.value" :label="s.label" :value="s.value" />
         </el-select>
-        <el-button @click="searchData">搜索</el-button>
+        <el-select v-model="filterCategory" placeholder="类别" style="width:130px" clearable @change="doSearch">
+          <el-option label="全部" value="" />
+          <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+        </el-select>
+        <el-button @click="doSearch">搜索</el-button>
+        <el-button type="success" size="small" @click="handleExport">导出CSV</el-button>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <template v-if="selectedRows.length">
-          <el-select v-model="batchStatus" style="width:120px" placeholder="批量改状态">
-            <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-          <el-button type="warning" size="small" @click="handleBatchStatus">
-            批量修改 ({{ selectedRows.length }})
-          </el-button>
-        </template>
-        <el-button type="primary" @click="openDialog()">新增数据</el-button>
-      </div>
+      <el-button type="primary" @click="openDialog()">新增数据</el-button>
     </div>
 
-    <el-table :data="dataList" border stripe v-loading="loading" @selection-change="onSelectionChange">
-      <el-table-column type="selection" width="45" />
+    <el-table :data="dataList" v-loading="loading" border stripe>
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="title" label="标题" min-width="120" />
       <el-table-column prop="category" label="类别" width="100" />
-      <el-table-column prop="amount" label="金额" width="100" />
-      <el-table-column prop="status" label="状态" width="100">
+      <el-table-column prop="amount" label="金额" width="90" />
+      <el-table-column label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="STATUS_MAP[row.status]?.tagType || 'info'" size="small">{{ STATUS_MAP[row.status]?.label || row.status }}</el-tag>
+          <el-tag :type="statusMap[row.status]?.type || 'info'" size="small">{{ statusMap[row.status]?.text || row.status }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="创建时间" width="170" />
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column prop="reject_reason" label="驳回原因" width="120" show-overflow-tooltip />
+      <el-table-column prop="created_at" label="创建时间" width="160" />
+      <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="openDialog(row)">编辑</el-button>
+          <el-button size="small" @click="openDialog(row)">编��</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!loading && dataList.length === 0" description="暂无数据，点击右上角新增" />
-
     <el-pagination
-      v-if="total > 0"
-      v-model:current-page="page"
-      v-model:page-size="pageSize"
-      :total="total"
+      v-if="total > pageSize"
       layout="total, prev, pager, next"
+      :total="total"
+      :page-size="pageSize"
+      v-model:current-page="page"
       @current-change="loadData"
       style="margin-top:16px"
     />
 
-    <el-dialog v-model="dialogVisible" :title="editId ? '编辑数据' : '新增数据'" width="520px">
+    <el-dialog v-model="dlgVisible" :title="editingId ? '编辑数据' : '新增数据'" width="500px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="标题" prop="title">
           <el-input v-model="form.title" />
         </el-form-item>
         <el-form-item label="类别">
-          <el-input v-model="form.category" />
+          <el-select v-model="form.category" filterable allow-create default-first-option style="width:100%" placeholder="选择或输入类别">
+            <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+          </el-select>
         </el-form-item>
         <el-form-item label="金额">
           <el-input-number v-model="form.amount" :min="0" :precision="2" style="width:100%" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="form.status" style="width:100%">
-            <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+            <el-option v-for="s in statusOpts" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
+        </el-form-item>
+        <el-form-item v-if="form.status === 'rejected'" label="驳回原因">
+          <el-input v-model="form.reject_reason" type="textarea" :rows="2" placeholder="请输入驳回原因" />
         </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="form.description" type="textarea" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving">确定</el-button>
+        <el-button @click="dlgVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="submitting">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -85,24 +83,37 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../api'
-import { STATUS_MAP, STATUS_OPTIONS } from '../constants'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const dataList = ref([])
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(10)
+const pageSize = 10
+const loading = ref(false)
 const search = ref('')
 const filterStatus = ref('')
-const dialogVisible = ref(false)
-const editId = ref(null)
+const filterCategory = ref('')
+const categories = ref([])
+const dlgVisible = ref(false)
+const editingId = ref(null)
+const submitting = ref(false)
 const formRef = ref()
-const loading = ref(false)
-const saving = ref(false)
-const selectedRows = ref([])
-const batchStatus = ref('')
 
-const defaultForm = () => ({ title: '', category: '', amount: 0, description: '', status: 'pending' })
+const statusOpts = [
+  { value: 'pending', label: '待处理' },
+  { value: 'approved', label: '已审批' },
+  { value: 'completed', label: '已完成' },
+  { value: 'rejected', label: '已驳回' },
+]
+
+const statusMap = {
+  pending: { type: 'warning', text: '待处理' },
+  approved: { type: 'success', text: '已审批' },
+  completed: { type: '', text: '已完成' },
+  rejected: { type: 'danger', text: '已驳回' },
+}
+
+const defaultForm = () => ({ title: '', category: '', amount: 0, status: 'pending', description: '', reject_reason: '' })
 const form = ref(defaultForm())
 const rules = { title: [{ required: true, message: '请输入标题', trigger: 'blur' }] }
 
@@ -110,7 +121,7 @@ async function loadData() {
   loading.value = true
   try {
     const res = await api.get('/data', {
-      params: { page: page.value, pageSize: pageSize.value, search: search.value, status: filterStatus.value }
+      params: { page: page.value, pageSize, search: search.value, status: filterStatus.value, category: filterCategory.value }
     })
     dataList.value = res.data
     total.value = res.total
@@ -119,73 +130,80 @@ async function loadData() {
   }
 }
 
-function searchData() {
-  page.value = 1
-  loadData()
+async function loadCategories() {
+  try {
+    const res = await api.get('/data/categories')
+    categories.value = res.data || []
+  } catch { categories.value = [] }
 }
 
-function onFilterChange() {
+function doSearch() {
   page.value = 1
   loadData()
-}
-
-function onSelectionChange(rows) {
-  selectedRows.value = rows
 }
 
 function openDialog(row = null) {
-  editId.value = row?.id ?? null
-  form.value = row ? { title: row.title, category: row.category, amount: row.amount, description: row.description, status: row.status } : defaultForm()
-  dialogVisible.value = true
+  if (row) {
+    editingId.value = row.id
+    form.value = { title: row.title, category: row.category, amount: row.amount, status: row.status, description: row.description || '', reject_reason: row.reject_reason || '' }
+  } else {
+    editingId.value = null
+    form.value = defaultForm()
+  }
+  dlgVisible.value = true
 }
 
-async function handleSave() {
+async function handleSubmit() {
   await formRef.value.validate()
-  saving.value = true
+  submitting.value = true
   try {
-    if (editId.value) {
-      await api.put(`/data/${editId.value}`, form.value)
+    if (editingId.value) {
+      await api.put(`/data/${editingId.value}`, form.value)
       ElMessage.success('更新成功')
     } else {
       await api.post('/data', form.value)
       ElMessage.success('创建成功')
     }
-    dialogVisible.value = false
+    dlgVisible.value = false
     loadData()
+    loadCategories()
   } finally {
-    saving.value = false
+    submitting.value = false
   }
 }
 
 async function handleDelete(row) {
-  await ElMessageBox.confirm(
-    `确定删除「${row.title}」吗？删除后数据将无法恢复。`,
-    '删除确认',
-    { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' }
-  )
+  await ElMessageBox.confirm(`确定删除「${row.title}」？`, '删除确认', { type: 'warning' })
   await api.delete(`/data/${row.id}`)
   ElMessage.success('删除成功')
   loadData()
 }
 
-async function handleBatchStatus() {
-  if (!batchStatus.value) {
-    return ElMessage.warning('请先选择要修改为的状态')
-  }
-  const ids = selectedRows.value.map(r => r.id)
-  await ElMessageBox.confirm(
-    `确认将 ${ids.length} 条数据的状态修改为「${STATUS_MAP[batchStatus.value]?.label}」？此操作不可撤销。`,
-    '批量修改确认',
-    { confirmButtonText: '确认修改', cancelButtonText: '取消', type: 'warning' }
-  )
-  await api.put('/admin/data/batch-status', { ids, status: batchStatus.value })
-  ElMessage.success('批量修改成功')
-  selectedRows.value = []
-  batchStatus.value = ''
-  loadData()
+function handleExport() {
+  const params = new URLSearchParams()
+  if (search.value) params.set('search', search.value)
+  if (filterStatus.value) params.set('status', filterStatus.value)
+  if (filterCategory.value) params.set('category', filterCategory.value)
+  const token = localStorage.getItem('token')
+  fetch(`/api/data/export?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => r.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'business_data.csv'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    })
+    .catch(() => ElMessage.error('导出失败'))
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  loadCategories()
+})
 </script>
 
 <style scoped>

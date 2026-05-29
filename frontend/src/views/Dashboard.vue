@@ -13,33 +13,37 @@
           </el-card>
         </el-col>
       </el-row>
+
       <el-row :gutter="20" style="margin-top:20px">
         <el-col :span="12">
           <el-card>
-            <template #header>数据概况</template>
-            <el-descriptions :column="1" border>
-              <el-descriptions-item label="待处理">{{ stats.pendingCount || 0 }}</el-descriptions-item>
-              <el-descriptions-item label="已审批">{{ stats.approvedCount || 0 }}</el-descriptions-item>
-              <el-descriptions-item label="数据总量">{{ isAdmin ? (stats.dataCount || 0) : (stats.totalCount || 0) }}</el-descriptions-item>
-              <el-descriptions-item label="金额总计">¥{{ (stats.totalAmount || 0).toLocaleString() }}</el-descriptions-item>
-            </el-descriptions>
+            <template #header>数据状态分布</template>
+            <div class="chart-row">
+              <div v-for="item in chartData" :key="item.label" class="chart-bar-item">
+                <div class="chart-bar-label">{{ item.label }}</div>
+                <div class="chart-bar-track">
+                  <div class="chart-bar-fill" :style="{ width: item.pct + '%', background: item.color }"></div>
+                </div>
+                <div class="chart-bar-value">{{ item.count }}</div>
+              </div>
+            </div>
           </el-card>
         </el-col>
-        <el-col :span="12" v-if="isAdmin">
-          <el-card>
+        <el-col :span="12">
+          <el-card v-if="isAdmin">
             <template #header>用户概况</template>
             <el-descriptions :column="1" border>
               <el-descriptions-item label="用户总数">{{ stats.userCount || 0 }}</el-descriptions-item>
               <el-descriptions-item label="活跃用户">{{ stats.activeUsers || 0 }}</el-descriptions-item>
+              <el-descriptions-item label="金额总计">¥{{ (stats.totalAmount || 0).toLocaleString() }}</el-descriptions-item>
             </el-descriptions>
           </el-card>
-        </el-col>
-        <el-col :span="12" v-else>
-          <el-card>
+          <el-card v-else>
             <template #header>温馨提示</template>
             <el-descriptions :column="1" border>
               <el-descriptions-item label="我的数据">{{ stats.totalCount || 0 }} 条</el-descriptions-item>
               <el-descriptions-item label="待处理">{{ stats.pendingCount || 0 }} 条</el-descriptions-item>
+              <el-descriptions-item label="金额总计">¥{{ (stats.totalAmount || 0).toLocaleString() }}</el-descriptions-item>
             </el-descriptions>
           </el-card>
         </el-col>
@@ -77,6 +81,20 @@ const cards = computed(() => {
   ];
 });
 
+const chartData = computed(() => {
+  if (!stats.value) return [];
+  const s = stats.value;
+  const total = isAdmin.value ? (s.dataCount || 0) : (s.totalCount || 0);
+  if (!total) return [];
+  const items = [
+    { label: '待处理', count: s.pendingCount || 0, color: '#E6A23C' },
+    { label: '已审批', count: s.approvedCount || 0, color: '#67C23A' },
+    { label: '已完成', count: s.completedCount || 0, color: '#409EFF' },
+    { label: '已驳回', count: s.rejectedCount || 0, color: '#F56C6C' },
+  ];
+  return items.map(item => ({ ...item, pct: Math.round((item.count / total) * 100) }));
+});
+
 onMounted(async () => {
   try {
     stats.value = isAdmin.value ? await api.get('/admin/stats') : await api.get('/data/my-stats');
@@ -90,4 +108,10 @@ onMounted(async () => {
 .stat-card { text-align: center; padding: 10px 0; }
 .stat-value { font-size: var(--font-size-title); font-weight: bold; color: var(--color-primary); }
 .stat-label { font-size: var(--font-size-label); color: var(--color-text-secondary); margin-top: 8px; }
+.chart-row { display: flex; flex-direction: column; gap: 12px; }
+.chart-bar-item { display: flex; align-items: center; gap: 10px; }
+.chart-bar-label { width: 60px; text-align: right; font-size: 13px; color: #606266; }
+.chart-bar-track { flex: 1; height: 20px; background: #f0f2f5; border-radius: 10px; overflow: hidden; }
+.chart-bar-fill { height: 100%; border-radius: 10px; transition: width 0.6s ease; }
+.chart-bar-value { width: 40px; font-size: 13px; font-weight: bold; color: #303133; }
 </style>
