@@ -132,7 +132,11 @@ async function handleSubmit() {
 }
 
 async function handleDelete(row) {
-  await ElMessageBox.confirm(`确定删除用户 "${row.username}" 吗？`, '提示', { type: 'warning' });
+  await ElMessageBox.confirm(
+    `确定删除用户「${row.username}」吗？删除后该用户的所有数据也将被清除，此操作不可恢复。`,
+    '删除确认',
+    { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' }
+  );
   await api.delete(`/auth/users/${row.id}`);
   ElMessage.success('删除成功');
   loadUsers();
