@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const auth = require('../middleware/auth');
+const logAction = require('../logAction');
 const { success, error } = require('../utils');
 
 const BATCH_LIMIT = 100;
@@ -15,8 +16,10 @@ router.get('/stats', (req, res) => {
   const dataCount = db.prepare('SELECT COUNT(*) AS count FROM business_data').get().count;
   const pendingCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE status = 'pending'").get().count;
   const approvedCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE status = 'approved'").get().count;
+  const completedCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE status = 'completed'").get().count;
+  const rejectedCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE status = 'rejected'").get().count;
   const totalAmount = db.prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM business_data').get().total;
-  success(res, { userCount, activeUsers, dataCount, pendingCount, approvedCount, totalAmount });
+  success(res, { userCount, activeUsers, dataCount, pendingCount, approvedCount, completedCount, rejectedCount, totalAmount });
 });
 
 router.put('/data/batch-status', (req, res) => {
@@ -29,6 +32,10 @@ router.put('/data/batch-status', (req, res) => {
 
   const placeholders = ids.map(() => '?').join(',');
   db.prepare(`UPDATE business_data SET status = ?, updated_at = datetime('now') WHERE id IN (${placeholders})`).run(status, ...ids);
+
+  const statusLabel = { pending: '待处理', approved: '已审批', completed: '已完成', rejected: '已驳回' }[status] || status;
+  logAction(req.user.id, req.user.username, '批量更新状态', 'business_data', 0, `将 ${ids.length} 条数据状态改为「${statusLabel}」, ID: [${ids.join(',')}]`);
+
   success(res, { message: '状态更新成功', count: ids.length });
 });
 
