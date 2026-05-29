@@ -1,0 +1,16 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
+
+const dbDir = path.resolve(__dirname, '..', 'data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const dbPath = process.env.DB_PATH || path.join(dbDir, 'enterprise.db');
+const db = new Database(dbPath);
+
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+module.exports = db;
