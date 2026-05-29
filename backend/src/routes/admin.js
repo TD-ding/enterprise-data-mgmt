@@ -40,7 +40,7 @@ router.put('/data/batch-status', (req, res) => {
 });
 
 router.get('/categories', (req, res) => {
-  const rows = db.prepare('SELECT DISTINCT category FROM business_data WHERE category != "" ORDER BY category').all();
+  const rows = db.prepare("SELECT DISTINCT category FROM business_data WHERE category != '' ORDER BY category").all();
   success(res, rows.map(r => r.category));
 });
 
