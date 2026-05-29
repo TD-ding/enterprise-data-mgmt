@@ -5,7 +5,7 @@
         <el-input v-model="search" placeholder="搜索标题/描述" style="width:180px" clearable @keyup.enter="doSearch" />
         <el-select v-model="filterStatus" placeholder="状态" style="width:110px" @change="doSearch">
           <el-option label="全部" value="" />
-          <el-option v-for="s in statusOpts" :key="s.value" :label="s.label" :value="s.value" />
+          <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
         </el-select>
         <el-select v-model="filterCategory" placeholder="类别" style="width:130px" clearable @change="doSearch">
           <el-option label="全部" value="" />
@@ -24,14 +24,14 @@
       <el-table-column prop="amount" label="金额" width="90" />
       <el-table-column label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="statusMap[row.status]?.type || 'info'" size="small">{{ statusMap[row.status]?.text || row.status }}</el-tag>
+          <el-tag :type="STATUS_MAP[row.status]?.tagType || 'info'" size="small">{{ STATUS_MAP[row.status]?.label || row.status }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="reject_reason" label="驳回原因" width="120" show-overflow-tooltip />
       <el-table-column prop="created_at" label="创建时间" width="160" />
       <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="openDialog(row)">编��</el-button>
+          <el-button size="small" @click="openDialog(row)">编辑</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
@@ -62,7 +62,7 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="form.status" style="width:100%">
-            <el-option v-for="s in statusOpts" :key="s.value" :label="s.label" :value="s.value" />
+            <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
           </el-select>
         </el-form-item>
         <el-form-item v-if="form.status === 'rejected'" label="驳回原因">
@@ -83,7 +83,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../api'
+import { STATUS_MAP, STATUS_OPTIONS } from '../constants'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import router from '../router'
 
 const dataList = ref([])
 const total = ref(0)
@@ -98,20 +100,6 @@ const dlgVisible = ref(false)
 const editingId = ref(null)
 const submitting = ref(false)
 const formRef = ref()
-
-const statusOpts = [
-  { value: 'pending', label: '待处理' },
-  { value: 'approved', label: '已审批' },
-  { value: 'completed', label: '已完成' },
-  { value: 'rejected', label: '已驳回' },
-]
-
-const statusMap = {
-  pending: { type: 'warning', text: '待处理' },
-  approved: { type: 'success', text: '已审批' },
-  completed: { type: '', text: '已完成' },
-  rejected: { type: 'danger', text: '已驳回' },
-}
 
 const defaultForm = () => ({ title: '', category: '', amount: 0, status: 'pending', description: '', reject_reason: '' })
 const form = ref(defaultForm())
@@ -186,7 +174,16 @@ function handleExport() {
   if (filterCategory.value) params.set('category', filterCategory.value)
   const token = localStorage.getItem('token')
   fetch(`/api/data/export?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
-    .then(r => r.blob())
+    .then(r => {
+      if (r.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        router.push('/login')
+        throw new Error('登录已过期，请重新登录')
+      }
+      if (!r.ok) throw new Error('导出失败')
+      return r.blob()
+    })
     .then(blob => {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -197,7 +194,7 @@ function handleExport() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     })
-    .catch(() => ElMessage.error('导出失败'))
+    .catch(err => ElMessage.error(err.message || '导出失败'))
 }
 
 onMounted(() => {

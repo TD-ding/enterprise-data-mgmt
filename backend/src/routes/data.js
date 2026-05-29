@@ -11,8 +11,10 @@ router.get('/my-stats', auth(), (req, res) => {
   const totalCount = db.prepare('SELECT COUNT(*) AS count FROM business_data WHERE created_by = ?').get(userId).count;
   const pendingCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE created_by = ? AND status = 'pending'").get(userId).count;
   const approvedCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE created_by = ? AND status = 'approved'").get(userId).count;
+  const completedCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE created_by = ? AND status = 'completed'").get(userId).count;
+  const rejectedCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE created_by = ? AND status = 'rejected'").get(userId).count;
   const totalAmount = db.prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM business_data WHERE created_by = ?').get(userId).total;
-  success(res, { totalCount, pendingCount, approvedCount, totalAmount });
+  success(res, { totalCount, pendingCount, approvedCount, completedCount, rejectedCount, totalAmount });
 });
 
 // CSV export
@@ -37,15 +39,14 @@ router.get('/export', auth(), (req, res) => {
     ORDER BY b.id DESC
   `).all(...params);
 
-  const statusMap = { pending: '待处理', approved: '已审批', completed: '已完成', rejected: '已拒绝' };
+  const statusText = { pending: '待处理', approved: '已审批', completed: '已完成', rejected: '已驳回' };
   const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const header = 'ID,标题,类别,金额,状态,驳回原因,描述,创建人,创建时间,更新时间';
   const lines = rows.map(r =>
-    [r.id, r.title, r.category, r.amount, statusMap[r.status] || r.status, r.reject_reason, r.description, r.creator_name, r.created_at, r.updated_at].map(escape).join(',')
+    [r.id, r.title, r.category, r.amount, statusText[r.status] || r.status, r.reject_reason, r.description, r.creator_name, r.created_at, r.updated_at].map(escape).join(',')
   );
 
-  const bom = '﻿';
-  const csv = bom + header + '\n' + lines.join('\n');
+  const csv = '﻿' + header + '\n' + lines.join('\n');
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename=business_data.csv');

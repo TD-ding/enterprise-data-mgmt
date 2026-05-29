@@ -31,9 +31,19 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
   if (to.meta.requiresAuth !== false && !token) {
     next('/login');
-  } else {
-    next();
+    return;
   }
+
+  // Non-admin users trying to access admin pages → redirect to dashboard
+  if (to.meta.role === 'admin') {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!user || user.role !== 'admin') {
+      next('/dashboard');
+      return;
+    }
+  }
+
+  next();
 });
 
 export default router;

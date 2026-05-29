@@ -58,13 +58,13 @@ import api from '../api';
 import { useUserStore } from '../stores/user';
 
 const userStore = useUserStore();
-const stats = ref(null);
+const stats = ref({});
 const loading = ref(true);
 const isAdmin = computed(() => userStore.isAdmin());
 
 const cards = computed(() => {
-  if (!stats.value) return [];
   const s = stats.value;
+  if (!s || Object.keys(s).length === 0) return [];
   if (isAdmin.value) {
     return [
       { label: '用户总数', value: s.userCount || 0 },
@@ -82,8 +82,8 @@ const cards = computed(() => {
 });
 
 const chartData = computed(() => {
-  if (!stats.value) return [];
   const s = stats.value;
+  if (!s || Object.keys(s).length === 0) return [];
   const total = isAdmin.value ? (s.dataCount || 0) : (s.totalCount || 0);
   if (!total) return [];
   const items = [
@@ -97,7 +97,9 @@ const chartData = computed(() => {
 
 onMounted(async () => {
   try {
-    stats.value = isAdmin.value ? await api.get('/admin/stats') : await api.get('/data/my-stats');
+    const res = isAdmin.value ? await api.get('/admin/stats') : await api.get('/data/my-stats');
+    // api interceptor returns body directly, data is under .data
+    stats.value = res.data || res;
   } finally {
     loading.value = false;
   }
