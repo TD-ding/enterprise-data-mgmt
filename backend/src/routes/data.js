@@ -4,6 +4,17 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+// User stats (for non-admin dashboard)
+router.get('/my-stats', auth(), (req, res) => {
+  const userId = req.user.id;
+  const totalCount = db.prepare('SELECT COUNT(*) AS count FROM business_data WHERE created_by = ?').get(userId).count;
+  const pendingCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE created_by = ? AND status = 'pending'").get(userId).count;
+  const approvedCount = db.prepare("SELECT COUNT(*) AS count FROM business_data WHERE created_by = ? AND status = 'approved'").get(userId).count;
+  const totalAmount = db.prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM business_data WHERE created_by = ?').get(userId).total;
+
+  res.json({ totalCount, pendingCount, approvedCount, totalAmount });
+});
+
 // List business data
 router.get('/', auth(), (req, res) => {
   const { search = '', category = '', status = '', page = 1, pageSize = 10 } = req.query;

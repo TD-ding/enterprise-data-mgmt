@@ -1,5 +1,10 @@
 const jwt = require('jsonwebtoken');
 
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET is not set. Refusing to start.');
+  process.exit(1);
+}
+
 function auth(requiredRole) {
   return (req, res, next) => {
     const header = req.headers.authorization;
@@ -15,8 +20,11 @@ function auth(requiredRole) {
         return res.status(403).json({ error: '权限不足' });
       }
       next();
-    } catch {
-      res.status(401).json({ error: '令牌无效或已过期' });
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: '登录已过期，请重新登录' });
+      }
+      res.status(401).json({ error: '认证令牌无效' });
     }
   };
 }

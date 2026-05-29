@@ -15,7 +15,7 @@
       <el-button type="primary" @click="openDialog()">新增数据</el-button>
     </div>
 
-    <el-table :data="dataList" border stripe>
+    <el-table :data="dataList" border stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="title" label="标题" min-width="120" />
       <el-table-column prop="category" label="类别" width="100" />
@@ -68,7 +68,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">确定</el-button>
+        <el-button type="primary" @click="handleSave" :loading="saving">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -88,6 +88,8 @@ const filterStatus = ref('')
 const dialogVisible = ref(false)
 const editId = ref(null)
 const formRef = ref()
+const loading = ref(false)
+const saving = ref(false)
 
 const form = ref({ title: '', category: '', amount: 0, description: '', status: 'pending' })
 const rules = {
@@ -95,11 +97,16 @@ const rules = {
 }
 
 async function loadData() {
-  const res = await api.get('/data', {
-    params: { page: page.value, pageSize: pageSize.value, search: search.value, status: filterStatus.value }
-  })
-  dataList.value = res.data
-  total.value = res.total
+  loading.value = true
+  try {
+    const res = await api.get('/data', {
+      params: { page: page.value, pageSize: pageSize.value, search: search.value, status: filterStatus.value }
+    })
+    dataList.value = res.data
+    total.value = res.total
+  } finally {
+    loading.value = false
+  }
 }
 
 function openDialog(row = null) {
@@ -115,15 +122,20 @@ function openDialog(row = null) {
 
 async function handleSave() {
   await formRef.value.validate()
-  if (editId.value) {
-    await api.put(`/data/${editId.value}`, form.value)
-    ElMessage.success('更新成功')
-  } else {
-    await api.post('/data', form.value)
-    ElMessage.success('创建成功')
+  saving.value = true
+  try {
+    if (editId.value) {
+      await api.put(`/data/${editId.value}`, form.value)
+      ElMessage.success('更新成功')
+    } else {
+      await api.post('/data', form.value)
+      ElMessage.success('创建成功')
+    }
+    dialogVisible.value = false
+    loadData()
+  } finally {
+    saving.value = false
   }
-  dialogVisible.value = false
-  loadData()
 }
 
 async function handleDelete(id) {

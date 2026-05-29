@@ -94,6 +94,7 @@ npm run build
 | PUT    | /api/auth/users/:id   | 更新用户         | 管理员 |
 | DELETE | /api/auth/users/:id   | 删除用户         | 管理员 |
 | GET    | /api/data             | 业务数据列表     | 登录   |
+| GET    | /api/data/my-stats    | 当前用户统计     | 登录   |
 | POST   | /api/data             | 创建业务数据     | 登录   |
 | PUT    | /api/data/:id         | 更新业务数据     | 登录   |
 | DELETE | /api/data/:id         | 删除业务数据     | 登录   |

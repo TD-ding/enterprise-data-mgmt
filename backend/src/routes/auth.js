@@ -96,6 +96,7 @@ router.delete('/users/:id', auth('admin'), (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: '用户不存在' });
   if (user.role === 'admin' && user.username === 'admin') return res.status(403).json({ error: '不能删除默认管理员' });
+  db.prepare('DELETE FROM business_data WHERE created_by = ?').run(req.params.id);
   db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
   res.json({ message: '用户已删除' });
 });

@@ -13,7 +13,7 @@
           <el-button type="primary" size="large" :loading="loading" style="width:100%" @click="handleLogin">登 录</el-button>
         </el-form-item>
       </el-form>
-      <p class="hint">默认管理员: admin / admin123</p>
+      <p class="hint">首次使用请以管理员身份登录: admin / admin123</p>
     </el-card>
   </div>
 </template>

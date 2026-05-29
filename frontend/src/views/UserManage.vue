@@ -7,7 +7,7 @@
         <el-button type="primary" @click="openDialog()">新增用户</el-button>
       </div>
     </div>
-    <el-table :data="users" border stripe>
+    <el-table :data="users" border stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="username" label="用户名" width="120" />
       <el-table-column prop="name" label="姓名" width="120" />
@@ -61,7 +61,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="saving">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -80,6 +80,8 @@ const search = ref('');
 const dialogVisible = ref(false);
 const editUser = ref(null);
 const formRef = ref();
+const loading = ref(false);
+const saving = ref(false);
 
 const form = reactive({ username: '', password: '', name: '', email: '', role: 'user', status: 'active' });
 const rules = {
@@ -89,9 +91,14 @@ const rules = {
 };
 
 async function loadUsers() {
-  const res = await api.get('/auth/users', { params: { page: page.value, pageSize: pageSize.value, search: search.value } });
-  users.value = res.data;
-  total.value = res.total;
+  loading.value = true;
+  try {
+    const res = await api.get('/auth/users', { params: { page: page.value, pageSize: pageSize.value, search: search.value } });
+    users.value = res.data;
+    total.value = res.total;
+  } finally {
+    loading.value = false;
+  }
 }
 
 function openDialog(user = null) {
@@ -106,17 +113,22 @@ function openDialog(user = null) {
 
 async function handleSubmit() {
   await formRef.value.validate();
-  if (editUser.value) {
-    const payload = { name: form.name, email: form.email, role: form.role, status: form.status };
-    if (form.password) payload.password = form.password;
-    await api.put(`/auth/users/${editUser.value.id}`, payload);
-    ElMessage.success('更新成功');
-  } else {
-    await api.post('/auth/users', form);
-    ElMessage.success('创建成功');
+  saving.value = true;
+  try {
+    if (editUser.value) {
+      const payload = { name: form.name, email: form.email, role: form.role, status: form.status };
+      if (form.password) payload.password = form.password;
+      await api.put(`/auth/users/${editUser.value.id}`, payload);
+      ElMessage.success('更新成功');
+    } else {
+      await api.post('/auth/users', form);
+      ElMessage.success('创建成功');
+    }
+    dialogVisible.value = false;
+    loadUsers();
+  } finally {
+    saving.value = false;
   }
-  dialogVisible.value = false;
-  loadUsers();
 }
 
 async function handleDelete(row) {
